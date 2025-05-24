@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 def extract_visual_features(video_path):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
-        print("Error: Could not open video.")
+        print(f"Error: Could not open video {video_path}.")
         return None
 
     frame_brightness = []
@@ -27,7 +27,7 @@ def extract_visual_features(video_path):
 
 # Step 2: Simulate text feature extraction
 def extract_text_features(text):
-    positive_words = ["intense", "fun", "energetic", "great"]
+    positive_words = ["intense", "fun", "energetic", "great", "awesome"]
     words = text.lower().split()
     positive_count = sum(1 for word in words if word in positive_words)
     return positive_count / max(len(words), 1)
@@ -38,7 +38,7 @@ def extract_audio_features(video_path):
     try:
         subprocess.run(["ffmpeg", "-i", video_path, "-vn", "-acodec", "pcm_s16le", "-ar", "44100", "-ac", "2", temp_audio, "-y"], check=True)
     except Exception as e:
-        print("Error extracting audio:", e)
+        print(f"Error extracting audio from {video_path}: {e}")
         return 0.0
 
     try:
@@ -46,42 +46,79 @@ def extract_audio_features(video_path):
         centroid = librosa.feature.spectral_centroid(y=y, sr=sr)
         return np.mean(centroid)
     except Exception as e:
-        print("Error processing audio:", e)
+        print(f"Error processing audio: {e}")
         return 0.0
 
-# Step 4: Late fusion with attention
-def late_fusion(visual, text, audio):
-    visual_norm = min(visual / 255.0, 1.0)
-    text_norm = text
-    audio_norm = min(audio / 5000.0, 1.0)
-    weights = [0.33, 0.33, 0.34]
-    return weights[0] * visual_norm + weights[1] * text_norm + weights[2] * audio_norm
+# Step 4: Late fusion with user-defined weights
+def late_fusion(visual, text, audio, user_weights):
+    visual_norm = min(visual / 255.0, 1.0)  # Normalize brightness (0-255)
+    text_norm = text  # Already 0-1
+    audio_norm = min(audio / 5000.0, 1.0)  # Normalize centroid (0-5000 Hz)
+    # Weighted sum using user preferences
+    return (user_weights[0] * visual_norm +
+            user_weights[1] * text_norm +
+            user_weights[2] * audio_norm)
 
 # Step 5: Visualize the system
-def visualize_system(visual, text, audio, final_score):
+def visualize_system(visual, text, audio, final_score, user_weights):
     modalities = ['Visual', 'Text', 'Audio']
     features = [min(visual / 255.0, 1.0), text, min(audio / 5000.0, 1.0)]
-    plt.bar(modalities, features, alpha=0.5, label='Normalized Features')
+    plt.figure(figsize=(8, 5))
+    bars = plt.bar(modalities, features, alpha=0.5, label='Normalized Features')
     plt.axhline(y=final_score, color='r', linestyle='--', label=f'Final Score: {final_score:.2f}')
     plt.xlabel('Modalities')
     plt.ylabel('Feature Values (Normalized)')
-    plt.title('Multimodal System: Feature Contributions')
+    plt.title(f'Multimodal Analysis for intense_workout.mp4\nWeights: Visual={user_weights[0]:.2f}, Text={user_weights[1]:.2f}, Audio={user_weights[2]:.2f}')
+    # Add feature values on top of bars
+    for bar, feature in zip(bars, features):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height(), f'{feature:.2f}', ha='center', va='bottom')
     plt.legend()
+    plt.tight_layout()
     plt.show()
+
+# Step 6: Get user preferences
+def get_user_weights():
+    print("Enter weights for each modality (0 to 1, sum should be close to 1):")
+    while True:
+        try:
+            visual_weight = float(input("Weight for Visual (e.g., 0.3): "))
+            text_weight = float(input("Weight for Text (e.g., 0.3): "))
+            audio_weight = float(input("Weight for Audio (e.g., 0.4): "))
+            weights = [visual_weight, text_weight, audio_weight]
+            total = sum(weights)
+            if total <= 0 or any(w < 0 for w in weights):
+                print("Weights must be positive and sum to a positive value. Try again.")
+                continue
+            # Normalize weights to sum to 1
+            weights = [w / total for w in weights]
+            print(f"Normalized Weights: Visual={weights[0]:.2f}, Text={weights[1]:.2f}, Audio={weights[2]:.2f}")
+            return weights
+        except ValueError:
+            print("Please enter valid numbers. Try again.")
 
 # Main execution
 if __name__ == "__main__":
     video_path = "intense_workout.mp4"
     text_description = "This is an intense and energetic workout video"
 
+    # Get user preferences
+    user_weights = get_user_weights()
+
+    # Extract features
     visual_feature = extract_visual_features(video_path)
     text_feature = extract_text_features(text_description)
     audio_feature = extract_audio_features(video_path)
 
     if visual_feature is not None:
-        final_score = late_fusion(visual_feature, text_feature, audio_feature)
+        # Compute final score
+        final_score = late_fusion(visual_feature, text_feature, audio_feature, user_weights)
+
+        # Print results
+        print(f"\nResults for {video_path}:")
         print(f"Visual Feature (Average Brightness): {visual_feature:.2f}")
         print(f"Text Feature (Positivity Score): {text_feature:.2f}")
         print(f"Audio Feature (Spectral Centroid): {audio_feature:.2f}")
         print(f"Final Recommendation Score: {final_score:.2f}")
-        visualize_system(visual_feature, text_feature, audio_feature, final_score)
+
+        # Visualize
+        visualize_system(visual_feature, text_feature, audio_feature, final_score, user_weights)
