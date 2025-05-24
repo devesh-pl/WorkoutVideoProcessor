@@ -1,6 +1,13 @@
 # Workout Video Processor
 
-A Python-based multimodal system to process workout videos, extracting visual, text, and audio features to generate a recommendation score.
+A Python-based multimodal system to process workout videos, extracting visual, text, and audio features to generate a personalized recommendation score. This project is inspired by [Research Paper]'s multimodal framework, which uses Convolutional Neural Networks (CNNs) for visual processing, Transformers for text, and Recurrent Neural Networks (RNNs) for audio.
+
+## Features
+- Extracts visual features (average brightness) as a proxy for CNN-based processing.
+- Extracts text features (positivity score) as a proxy for Transformer-based sentiment analysis.
+- Extracts audio features (spectral centroid) as a proxy for RNN-based audio analysis.
+- Combines features using late fusion with user-defined weights, simulating attention-like personalization.
+- Visualizes modality contributions with a bar plot.
 
 ## Requirements
 - Python 3.8+
@@ -12,15 +19,3 @@ A Python-based multimodal system to process workout videos, extracting visual, t
    ```bash
    git clone https://github.com/lakshminpacha/WorkoutVideoProcessor.git
    cd WorkoutVideoProcessor
-   pip3 install opencv-python librosa numpy matplotlib
-brew install ffmpeg
-python3 process_video.py
-Output
-Visual Feature: Average brightness of video frames.
-Text Feature: Positivity score from the description.
-Audio Feature: Spectral centroid of the audio.
-Final Score: Combined recommendation score.
-Plot: Bar chart of normalized features and final score.
-
-NOTE :
-- Allows users to input custom weights for visual, text, and audio modalities to personalize recommendations.
