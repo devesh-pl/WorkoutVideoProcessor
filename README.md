@@ -21,3 +21,6 @@ Text Feature: Positivity score from the description.
 Audio Feature: Spectral centroid of the audio.
 Final Score: Combined recommendation score.
 Plot: Bar chart of normalized features and final score.
+
+NOTE :
+- Allows users to input custom weights for visual, text, and audio modalities to personalize recommendations.
